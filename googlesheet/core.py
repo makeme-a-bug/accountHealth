@@ -56,11 +56,10 @@ def update_sheet(sheet_url,data):
         return
         # sheet = spread_sheet.add_worksheet(title=sheet_name, rows=100, cols=20)
 
-    table = pd.DataFrame(sheet.get_all_records())
-    new_table = pd.concat([data,table])
-    new_table = new_table.drop_duplicates(["Reason","Date","Product Title","ASIN"],keep="first")
-    new_table = new_table.fillna(" ")
-    new_table = new_table.astype(str)
-    sheet.update([new_table.columns.values.tolist()] + new_table.values.tolist())
+    sheet.clear()
+    if len(data) > 0:
+        sheet.update([data.columns.values.tolist()] + data.values.tolist())
+    else:
+        sheet.update([["Reason","Date","ASIN","Product Title","Action Taken","Status",]])
 
 

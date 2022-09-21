@@ -28,7 +28,10 @@ class Scraper(webdriver.Remote):
         super(Scraper,self).__init__(self.command_executor,desired_capabilities={})
         self.set_page_load_timeout(120)
         self.implicitly_wait(120)
-        self.maximize_window()
+        try:
+            self.maximize_window()
+        except:
+            pass
 
 
     def get_data(self):
@@ -86,14 +89,17 @@ class Scraper(webdriver.Remote):
     
     def wait_for_table(self):
         table_loaded = False
-        for i in range(3):
+        for i in range(2):
             try:
-                WebDriverWait(self, 1200).until(EC.presence_of_element_located((By.CLASS_NAME,"ahd-product-policy-table-row-wrapper")))
+                self.implicitly_wait(20)
+                WebDriverWait(self, 20).until(EC.presence_of_element_located((By.CLASS_NAME,"ahd-product-policy-table-row-wrapper")))
                 self.console.log(f"table for page:{self.current_page}",style="blue")
                 table_loaded = True
+                self.implicitly_wait(120)
                 break
             except TimeoutException:
                 continue
+        self.implicitly_wait(120)
         return table_loaded
 
     def get_page(self,url:str) -> None:
@@ -106,10 +112,16 @@ class Scraper(webdriver.Remote):
         """
         url_open = False
         self.get(url)
+        time.sleep(3)
         for i in range(3):
             try:
-                WebDriverWait(self, 1200).until(EC.presence_of_element_located((By.ID,"ahd-product-policy-title")))
-                url_open = True
+                captcha = self.solve_captcha()
+                logged_in = self.is_profile_logged_in()
+                if captcha and logged_in:
+                    WebDriverWait(self, 60).until(EC.presence_of_element_located((By.ID,"ahd-product-policy-title")))
+                    url_open = True
+                else:
+                    pass
                 break
             except TimeoutException:
                 self.get(url)
@@ -137,9 +149,8 @@ class Scraper(webdriver.Remote):
         True  : if the profile is logged in
         False : if the profile is not logged in
         """
-
-        if self.find_elements(By.CSS_SELECTOR, 'a[data-csa-c-content-id="nav_youraccount_btn"]'):
-            self.tracker[-1]['Logged_in'] = True
+        time.sleep(10)
+        if "By continuing, you agree to Amazon's" not in self.page_source:
             return True
         self.console.log(f"{self.profile_name}:Profile not logged in into Amazon account",style='red')
         return False
@@ -159,7 +170,19 @@ class Scraper(webdriver.Remote):
                     return True
                 else:
                     self.console.log("next page button clicked but table was not updated. if you see this message multiple times. bring the browser to the front so it is loaded correctly",style="yellow")
+                    try:
+                        self.minimize_window()
+                    except:
+                        pass
+                    try:
+                        self.maximize_window()
+                    except:
+                        pass
                     time.sleep(10)
+                    try:
+                        self.minimize_window()
+                    except:
+                        pass
                     continue
             else:
                 self.console.log("end of table",style="blue")
